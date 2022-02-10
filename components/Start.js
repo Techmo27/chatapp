@@ -37,7 +37,7 @@ export default class Start extends React.Component {
 
           <View style={styles.contentContainer}>
             <View style={styles.inputField}>
-              <Image source={icon} style={styles.image} />
+              <Image source={icon} style={styles.icon} />
               <TextInput
                 style={styles.textInput}
                 onChangeText={(text) => this.setState({ name: text })}
@@ -86,21 +86,16 @@ const styles = StyleSheet.create({
   },
 
   button: {
+    width: '88%',
+    height: 70,
+    backgroundColor: '#757083',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 4,
-    elevation: 3,
-    backgroundColor: 'black',
-    marginVertical: 10,
+    justifyContent: 'center'
   },
   buttonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    lineHeight: 21,
-    fontWeight: 'bold',
-    letterSpacing: 0.25,
-    color: 'white',
+    fontWeight: "600"
   },
 
   image: {
@@ -119,6 +114,12 @@ const styles = StyleSheet.create({
 
   },
 
+  icon: {
+    width: 20,
+    height: 20,
+    marginRight: 10
+  },
+
   inputField: {
     borderWidth: 2,
     borderRadius: 1,
@@ -131,10 +132,10 @@ const styles = StyleSheet.create({
   },
 
   textInput: {
-    padding: 5,
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1
+    fontSize: 16,
+    fontWeight: "300",
+    color: '#757083',
+    opacity: 0.5,
 
   },
 

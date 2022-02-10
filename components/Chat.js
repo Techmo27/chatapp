@@ -7,24 +7,22 @@ export default class Chat extends React.Component {
     let name = this.props.route.params.name;
     this.props.navigation.setOptions({ title: name });
 
+    const { bgColor } = this.props.route.params;
+
     return (
-      <View style={styles.container}>
+      <View style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: bgColor
+      }}>
         <Text style={styles.bodyText} >Hey there, welcome!</Text>
       </View>
     )
   }
 }
 
-const { bgColor } = this.props.route.params;
-
 const styles = StyleSheet.create({
-
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: bgColor
-  },
 
   bodyText: {
     fontSize: 16,
