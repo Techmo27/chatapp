@@ -30,7 +30,7 @@ export default class Chat extends React.Component {
         },
         {
           _id: 2,
-          text: `${name} has joined the conversation`,
+          text: `${name} joined the conversation`,
           createdAt: new Date(),
           system: true,
         },
@@ -60,7 +60,7 @@ export default class Chat extends React.Component {
   render() {
     const { bgColor } = this.props.route.params;
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{ backgroundColor: bgColor, flex: 1 }}>
         <GiftedChat
           renderBubble={this.renderBubble.bind(this)}
           messages={this.state.messages}
