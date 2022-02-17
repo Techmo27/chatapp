@@ -1,5 +1,5 @@
 import React from 'react';
-
+import { LogBox } from 'react-native';
 import Chat from './components/Chat';
 import Start from './components/Start';
 // import react native gesture handler
@@ -10,6 +10,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
 const Stack = createStackNavigator();
+
+// Ignore log notification by message:
+LogBox.ignoreLogs(['Setting a timer']);
 
 export default class App extends React.Component {
   constructor(props) {

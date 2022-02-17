@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Platform, KeyboardAvoidingView } from 'react-native';
 import { db, auth, signInAnonymously, onAuthStateChanged, collection, addDoc, onSnapshot, orderBy, query } from "../firebase"
-import { GiftedChat, Bubble, SystemMessage } from 'react-native-gifted-chat'
+import { GiftedChat, Bubble } from 'react-native-gifted-chat'
 
 export default class Chat extends React.Component {
   constructor() {
@@ -40,12 +40,11 @@ export default class Chat extends React.Component {
           name: name,
           avatar: "https://placeimg.com/140/140/any",
         },
-
       }));
       // listens for updates in the collection
       this.unsubscribe = onSnapshot(query(this.referenceChatMessages, orderBy("createdAt", "desc")), this.onCollectionUpdate);
-
     });
+
   }
   // when col. gets updated, message state is set with current data
   onCollectionUpdate = (querySnapshot) => {
@@ -68,7 +67,6 @@ export default class Chat extends React.Component {
           location: data.location || null,
         });
       }
-      // console.log(messages)
     });
     this.setState({
       messages: messages
@@ -96,49 +94,27 @@ export default class Chat extends React.Component {
     });
   }
 
-  // appends previous messages into new messages state
+  // message gets send by user and shown in the chatroom
   onSend(messages = []) {
     this.setState(previousState => ({
       messages: GiftedChat.append(previousState.messages, messages),
     }), () => {
       this.addMessages();
+      // this.saveMessages();
     })
   }
-  // custom chat bubble color settings
-  renderBubble = (props) => {
+  // custom chat bubble color
+  renderBubble(props) {
     return (
       <Bubble
         {...props}
         wrapperStyle={{
           right: {
-            backgroundColor: 'white',
-          },
-          left: {
-            backgroundColor: 'grey',
-          }
-        }}
-        textStyle={{
-          right: {
-            color: 'black',
-          },
-          left: {
-            color: 'white',
+            backgroundColor: '#grey',
           }
         }}
       />
     )
-  };
-
-  // customizes system messages
-  renderSystemMessage(props) {
-    return (
-      <SystemMessage
-        {...props}
-        textStyle={{
-          color: "#fff",
-        }}
-      />
-    );
   }
 
   render() {
@@ -148,13 +124,10 @@ export default class Chat extends React.Component {
       <View style={{ backgroundColor: bgColor, flex: 1 }}>
         <GiftedChat
           renderBubble={this.renderBubble.bind(this)}
-          renderSystemMessage={this.renderSystemMessage}
           messages={this.state.messages}
           onSend={messages => this.onSend(messages)}
           user={{
-            _id: this.state.user,
-            name: this.state.name,
-
+            _id: 1,
           }}
         />
         {Platform.OS === 'android' ? <KeyboardAvoidingView behavior="height" /> : null}
