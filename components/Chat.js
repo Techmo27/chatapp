@@ -3,6 +3,10 @@ import { View, Platform, KeyboardAvoidingView } from 'react-native';
 import { db, auth, signInAnonymously, onAuthStateChanged, collection, addDoc, onSnapshot, orderBy, query } from "../firebase"
 import { GiftedChat, Bubble } from 'react-native-gifted-chat'
 
+import NetInfo from '@react-native-community/netinfo';
+
+import AsyncStorage from '@react-native-community/async-storage';
+
 export default class Chat extends React.Component {
   constructor() {
     super();
@@ -20,11 +24,55 @@ export default class Chat extends React.Component {
     this.referenceChatMessages = collection(db, "messages");
   }
 
+  // retrieves messages form storage
+  async getMessages() {
+    let messages = '';
+    try {
+      messages = await AsyncStorage.getItem('messages') || [];
+      this.setState({
+        messages: JSON.parse(messages)
+      });
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
+
+  // saves messages in the storage
+  async saveMessages() {
+    try {
+      await AsyncStorage.setItem('messages', JSON.stringify(this.state.messages));
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+
+  // deletes messages during deveopment
+  async deleteMessages() {
+    try {
+      await AsyncStorage.removeItem('messages');
+      this.setState({
+        messages: []
+      })
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+
   componentDidMount() {
     // defines name and pulls data from routed input
     let name = this.props.route.params.name;
     // adds given name to screen at the top
     this.props.navigation.setOptions({ title: name });
+
+    // checks if the app is connected
+    NetInfo.fetch().then(connection => {
+      if (connection.isConnected) {
+        console.log('online');
+      } else {
+        console.log('offline');
+      }
+    });
+
     // anonymous sign-in - authentication 
     this.authUnsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -43,7 +91,9 @@ export default class Chat extends React.Component {
       }));
       // listens for updates in the collection
       this.unsubscribe = onSnapshot(query(this.referenceChatMessages, orderBy("createdAt", "desc")), this.onCollectionUpdate);
+      //orderBy("createdAt", "desc"),
     });
+    this.getMessages();
 
   }
   // when col. gets updated, message state is set with current data
@@ -67,6 +117,7 @@ export default class Chat extends React.Component {
           location: data.location || null,
         });
       }
+      // console.log(messages)
     });
     this.setState({
       messages: messages
@@ -84,6 +135,7 @@ export default class Chat extends React.Component {
   async addMessages() {
     const message = this.state.messages[0];
     // adds a new messages to collection
+    //https://firebase.google.com/docs/firestore/manage-data/add-data
     await addDoc(this.referenceChatMessages, {
       _id: message._id,
       text: message.text || "",
@@ -99,8 +151,8 @@ export default class Chat extends React.Component {
     this.setState(previousState => ({
       messages: GiftedChat.append(previousState.messages, messages),
     }), () => {
-      this.addMessages();
-      // this.saveMessages();
+      // this.addMessages();
+      this.saveMessages();
     })
   }
   // custom chat bubble color
@@ -110,11 +162,23 @@ export default class Chat extends React.Component {
         {...props}
         wrapperStyle={{
           right: {
-            backgroundColor: '#grey',
+            backgroundColor: '#000',
           }
         }}
       />
     )
+  }
+
+  // renders the input toolbar if the user is online
+  renderInputToolbar(props) {
+    if (this.state.isConnected == false) {
+    } else {
+      return (
+        <InputToolbar
+          {...props}
+        />
+      );
+    }
   }
 
   render() {
