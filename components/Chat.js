@@ -5,7 +5,7 @@ import { GiftedChat, Bubble } from 'react-native-gifted-chat'
 
 import NetInfo from '@react-native-community/netinfo';
 
-import AsyncStorage from '@react-native-community/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default class Chat extends React.Component {
   constructor() {
