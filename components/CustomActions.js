@@ -3,7 +3,8 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import { db, auth, signInAnonymously, onAuthStateChanged, collection, addDoc, onSnapshot, orderBy, query } from "../firebase"
+import firebase from "firebase";
+import "firebase/firestore";
 
 export default class CustomActions extends React.Component {
 
