@@ -1,235 +1,170 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import { View, Platform, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { db, auth, signInAnonymously, onAuthStateChanged, collection, addDoc, onSnapshot, orderBy, query } from "../firebase"
-import { GiftedChat, Bubble } from 'react-native-gifted-chat'
-import NetInfo from '@react-native-community/netinfo';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import CustomActions from './CustomActions';
-import MapView from 'react-native-maps';
 
-export default class Chat extends React.Component {
-  constructor() {
-    super();
-    this.state = {
-      messages: [],
-      uid: 0,
-      user: {
-        _id: '',
-        name: '',
-        avatar: ''
-      },
-      isConnected: false,
-      image: null,
-      location: null,
-    };
+export default class CustomActions extends React.Component {
 
-    // reference to the Firestore message collection
-    this.referenceChatMessages = collection(db, "messages");
-  }
-
-  // retrieves messages form storage
-  async getMessages() {
-    let messages = '';
+  //allows user to pick photo from phone library
+  pickImage = async () => {
+    /// asks permission to access camera roll
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     try {
-      messages = await AsyncStorage.getItem('messages') || [];
-      this.setState({
-        messages: JSON.parse(messages)
-      });
-    } catch (error) {
-      console.log(error.message);
-    }
-  };
-
-  // saves messages in the storage
-  async saveMessages() {
-    try {
-      await AsyncStorage.setItem('messages', JSON.stringify(this.state.messages));
-    } catch (error) {
-      console.log(error.message);
-    }
-  }
-
-  // deletes messages during deveopment
-  async deleteMessages() {
-    try {
-      await AsyncStorage.removeItem('messages');
-      this.setState({
-        messages: []
-      })
-    } catch (error) {
-      console.log(error.message);
-    }
-  }
-
-  componentDidMount() {
-    // defines name and pulls data from routed input
-    let name = this.props.route.params.name;
-    // adds given name to screen at the top
-    this.props.navigation.setOptions({ title: name });
-
-    // checks if the app is connected
-    NetInfo.fetch().then(connection => {
-      if (connection.isConnected) {
-        console.log('online');
-      } else {
-        console.log('offline');
-      }
-    });
-
-    // anonymous sign-in - authentication 
-    this.authUnsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        await signInAnonymously(auth);
-      }
-
-      this.setState((prevState) => ({
-        ...prevState,
-        uid: user.uid,
-        messages: [],
-        user: {
-          _id: user.uid,
-          name: name,
-          avatar: "https://placeimg.com/140/140/any",
-        },
-      }));
-      // listens for updates in the collection
-      this.unsubscribe = onSnapshot(query(this.referenceChatMessages, orderBy("createdAt", "desc")), this.onCollectionUpdate);
-      //orderBy("createdAt", "desc"),
-    });
-    this.getMessages();
-
-  }
-  // when col. gets updated, message state is set with current data
-  onCollectionUpdate = (querySnapshot) => {
-    const messages = [];
-    // loops through documents
-    querySnapshot.forEach((doc) => {
-      // gets 'snapshot' of data
-      let data = doc.data();
-      if (data._id) {
-        messages.push({
-          _id: data._id,
-          text: data.text,
-          createdAt: data.createdAt.toDate(),
-          user: {
-            _id: data.user._id,
-            name: data.user.name,
-            avatar: data.user.avatar
-          },
-          image: data.image || null,
-          location: data.location || null,
+      if (status === "granted") {
+        let result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        }).catch((error) => {
+          console.error(error);
         });
+        if (!result.cancelled) {
+          const imageUrl = await this.uploadImage(result.uri);
+          this.props.onSend({ image: imageUrl });
+        }
       }
-      // console.log(messages)
-    });
-    this.setState({
-      messages: messages
-    });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  componentWillUnmount() {
-    //unsubscribes from collection updates
-    this.authUnsubscribe();
-    this.unsubscribe();
+  //allows user take a photo using camera
+  takePhoto = async () => {
+    //asks permission to access camera and media library
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    try {
+      if (status === "granted") {
+        let result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.All,
+        }).catch((error) => {
+          console.error(error);
+        });
+        if (!result.cancelled) {
+          const imageUrl = await this.uploadImage(result.uri);
+          this.props.onSend({ image: imageUrl });
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
-  }
-
-  // message added to databse
-  async addMessages() {
-    const message = this.state.messages[0];
-    // adds a new messages to collection
-    //https://firebase.google.com/docs/firestore/manage-data/add-data
-    await addDoc(this.referenceChatMessages, {
-      _id: message._id,
-      text: message.text || "",
-      createdAt: message.createdAt,
-      user: this.state.user,
-      image: message.image || "",
-      location: message.location || null,
-    });
-  }
-
-  // message gets send by user and shown in the chatroom
-  onSend(messages = []) {
-    this.setState(previousState => ({
-      messages: GiftedChat.append(previousState.messages, messages),
-    }), () => {
-      // this.addMessages();
-      this.saveMessages();
-    })
-  }
-  // custom chat bubble color
-  renderBubble(props) {
-    return (
-      <Bubble
-        {...props}
-        wrapperStyle={{
-          right: {
-            backgroundColor: '#000',
+  //allows users to get their location by using GPS
+  getLocation = async () => {
+    // asks permission to access user location 
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    try {
+      if (status === "granted") {
+        let result = await Location.getCurrentPositionAsync({}).catch(
+          (error) => {
+            console.error(error);
           }
-        }}
-      />
-    )
-  }
-
-  // renders the input toolbar if the user is online
-  renderInputToolbar(props) {
-    if (this.state.isConnected == false) {
-    } else {
-      return (
-        <InputToolbar
-          {...props}
-        />
-      );
+        );
+        // sends latitude and longitude to locate the position on the map
+        if (result) {
+          this.props.onSend({
+            location: {
+              longitude: result.coords.longitude,
+              latitude: result.coords.latitude,
+            },
+          });
+        }
+      }
+    } catch (error) {
+      console.error(error);
     }
-  }
+  };
 
-  //return a MapView 
-  renderCustomView(props) {
-    const { currentMessage } = props;
-    if (currentMessage.location) {
-      return (
-        <MapView
-          style={{
-            width: 150,
-            height: 100,
-            borderRadius: 13,
-            margin: 3
-          }}
-          region={{
-            latitude: currentMessage.location.latitude,
-            longitude: currentMessage.location.longitude,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-        />
-      );
-    }
-    return null;
-  }
+  //stores uploaded image to firebase  as blobs
+  uploadImage = async (uri) => {
+    const blob = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = function () {
+        resolve(xhr.response);
+      };
+      xhr.onerror = function (e) {
+        console.log(e);
+        reject(new TypeError("Network request failed"));
+      };
+      xhr.responseType = "blob";
+      xhr.open("GET", uri, true);
+      xhr.send(null);
+    });
+    const imageNameBefore = uri.split("/");
+    const imageName = imageNameBefore[imageNameBefore.length - 1];
 
+    const ref = firebase.storage().ref().child(`images/${imageName}`);
 
-  renderCustomActions = (props) => {
-    return <CustomActions {...props} />;
+    const snapshot = await ref.put(blob);
+
+    blob.close();
+
+    return await snapshot.ref.getDownloadURL();
+  };
+
+  //function that handles communication features
+  onActionPress = () => {
+    const options = [
+      "Choose Image From Library",
+      "Use Camera",
+      "Send Location",
+      "Cancel",
+    ];
+    const cancelButtonIndex = options.length - 1;
+    this.context.actionSheet().showActionSheetWithOptions(
+      {
+        options,
+        cancelButtonIndex,
+      },
+      async (buttonIndex) => {
+        switch (buttonIndex) {
+          case 0:
+            console.log("user wants to pick an image");
+            return this.pickImage();
+          case 1:
+            console.log("user wants to take a photo");
+            return this.takePhoto();
+          case 2:
+            console.log("user wants to get their location");
+            return this.getLocation();
+        }
+      }
+    );
   };
 
   render() {
-    // sets bg color which was selected 
-    const { bgColor } = this.props.route.params;
+
     return (
-      <View style={{ backgroundColor: bgColor, flex: 1 }}>
-        <GiftedChat
-          renderBubble={this.renderBubble.bind(this)}
-          messages={this.state.messages}
-          onSend={messages => this.onSend(messages)}
-          user={{
-            _id: 1,
-          }}
-          renderActions={this.renderCustomActions}
-          renderCustomView={this.renderCustomView}
-        />
-        {Platform.OS === 'android' ? <KeyboardAvoidingView behavior="height" /> : null}
-      </View>
-    )
+      <TouchableOpacity style={[styles.container]} onPress={this.onActionPress}>
+        <View style={styles.wrapper}>
+          <Text style={[styles.iconText]}>+</Text>
+        </View>
+      </TouchableOpacity>
+    );
   }
 }
+CustomActions.contextTypes = {
+  actionSheet: PropTypes.func,
+};
+
+const styles = StyleSheet.create({
+  container: {
+    width: 26,
+    height: 26,
+    marginLeft: 10,
+    marginBottom: 10,
+  },
+  wrapper: {
+    borderRadius: 13,
+    borderColor: '#b2b2b2',
+    borderWidth: 2,
+    flex: 1,
+  },
+  iconText: {
+    color: '#b2b2b2',
+    fontWeight: 'bold',
+    fontSize: 16,
+    backgroundColor: 'transparent',
+    textAlign: 'center',
+  },
+});
