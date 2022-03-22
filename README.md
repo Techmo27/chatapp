@@ -1,4 +1,4 @@
-**Description**
+**Project Description**
 This chat app for mobile devices was built using React Native. It provides users with a chat room as well as features to share images and their location.
 
 **Key Features**
@@ -10,8 +10,8 @@ and location data.
 - Data gets stored online and offline.
 
 **Tools**
-Node.js
-React Native
-Expo
-Google Firebase
-Gifted chat
+* Node.js
+* React Native
+* Expo
+* Google Firebase
+* Gifted chat
